@@ -53,15 +53,8 @@ export function useAuth() {
         throw new Error(data.detail || data.message || "Signup failed. Please try again.");
       }
 
-      const userData = { 
-        username: data.username || name, 
-        email: data.email || email, 
-        token: data.token || "mock-auth-token" 
-      };
-      saveUser(userData);
-      setUser(userData);
       setStatus("idle");
-      navigate("/signin"); // Redirect to signin after successful signup
+      navigate("/signin");
       return true;
     } catch (err) {
       setStatus("error");
@@ -83,21 +76,21 @@ export function useAuth() {
         body: JSON.stringify({ email, password }),
       });
 
+      const data = await response.json();
+
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || errorData.message || "Invalid credentials");
+        throw new Error(data.detail || data.message || "Invalid credentials");
       }
 
-      const data = await response.json();
       const userData = {
-        username: data.username,
-        email: data.email,
-        token: data.token || "mock-auth-token"
+        username: email.split("@")[0],
+        email: email,
+        token: data.access_token,
       };
       saveUser(userData);
       setUser(userData);
       setStatus("idle");
-      navigate("/upload"); // Redirect to upload page after successful signin
+      navigate("/upload");
       return true;
     } catch (err) {
       setStatus("error");
