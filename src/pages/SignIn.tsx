@@ -1,14 +1,13 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { useAuth } from "@/hooks/useAuth";
 import { toast } from "@/components/ui/use-toast";
 import MainLayout from "@/components/layout/MainLayout";
 
 export default function SignIn() {
-  const { signin, status, error: authError } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [formError, setFormError] = useState("");
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -26,21 +25,44 @@ export default function SignIn() {
     }
 
     try {
-      const success = await signin(email, password);
-      if (success) {
-        toast({
-          title: "Login successful",
-          description: "Redirecting to dashboard...",
-        });
+      setLoading(true);
+
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/signin`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Login failed");
       }
-    } catch (error) {
+
+      // ✅ Save token to localStorage
+      localStorage.setItem("access_token", data.access_token);
+      localStorage.setItem("sf_user", JSON.stringify({ email, token: data.access_token }));
+
+      toast({
+        title: "Login successful",
+        description: "Redirecting to dashboard...",
+      });
+
+      // Redirect after login
+      navigate("/dashboard");
+
+    } catch (error: any) {
       console.error("Login error:", error);
-      setFormError(authError || "Login failed. Please try again.");
+      setFormError(error.message || "Login failed. Please try again.");
       toast({
         title: "Login failed",
-        description: authError || "Invalid credentials",
+        description: error.message || "Invalid credentials",
         variant: "destructive"
       });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -50,7 +72,7 @@ export default function SignIn() {
         <h2 className="text-2xl font-bold text-center mb-6">Sign In</h2>
         <form className="space-y-6" onSubmit={handleSubmit}>
           <div>
-            <label className="block mb-1 text-sm font-medium text-gray-700" htmlFor="email">
+            <label htmlFor="email" className="block mb-1 text-sm font-medium text-gray-700">
               Email
             </label>
             <input
@@ -59,14 +81,14 @@ export default function SignIn() {
               className="w-full border border-gray-300 px-3 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              disabled={status === "loading"}
+              disabled={loading}
               placeholder="your@email.com"
               required
             />
           </div>
 
           <div>
-            <label className="block mb-1 text-sm font-medium text-gray-700" htmlFor="password">
+            <label htmlFor="password" className="block mb-1 text-sm font-medium text-gray-700">
               Password
             </label>
             <input
@@ -75,24 +97,24 @@ export default function SignIn() {
               className="w-full border border-gray-300 px-3 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              disabled={status === "loading"}
+              disabled={loading}
               placeholder="••••••••"
               required
             />
           </div>
 
-          {(formError || authError) && (
+          {formError && (
             <div className="text-red-500 text-sm text-center py-2 px-3 bg-red-50 rounded-md">
-              {formError || authError}
+              {formError}
             </div>
           )}
 
           <button
             type="submit"
             className="w-full bg-purple-600 text-white font-medium py-2 px-4 rounded-md hover:bg-purple-700 transition-colors disabled:opacity-50 flex justify-center items-center"
-            disabled={status === "loading"}
+            disabled={loading}
           >
-            {status === "loading" ? (
+            {loading ? (
               <>
                 <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
