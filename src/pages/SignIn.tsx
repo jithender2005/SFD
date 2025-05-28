@@ -51,7 +51,7 @@ export default function SignIn() {
       });
 
       // Redirect after login
-      navigate("/dashboard");
+      navigate("/");
 
     } catch (error: any) {
       console.error("Login error:", error);
